@@ -75,6 +75,7 @@ get '/' => sub {
     my $self = shift;
     my @files = grep { -d "$SERVICE_HOME/gits/$_" } read_dir("$SERVICE_HOME/gits");
     @files = map { { digest => $_, url => sprintf($DOMAIN, $_) } } @files;
+    @files = grep { $_ !~ m/27d5f7c/ } @files;
     $self->stash(list => \@files);
     $self->render('index');
 };
