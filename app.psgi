@@ -39,14 +39,14 @@ sub del_service {
 }
 
 on(
-    'on_pull',
+    'pull',
     sub {
         my ($uri, $digest) = @_;
     }
 );
 
 on(
-    'on_clone',
+    'clone',
     sub {
         my ($uri, $digest) = @_;
         make_path("../logs/$digest");
@@ -89,11 +89,17 @@ post '/' => sub {
         chdir "$SERVICE_HOME/gits";
         if (-d $digest) {
             if (!system("git pull")) {
-                emit('on_pull', $repo, $digest);
+                emit('pull', $repo, $digest);
             }
         } else {
             if (!system("git clone $repo $digest")) {
-                emit('on_clone', $repo, $digest);
+                if (-d "$digest/public" && -f "$digest/app.psgi") {
+                    emit('clone', $repo, $digest);
+                } else {
+                    rmtree("$digest");
+                    $self->render('error');
+                    return;
+                }
             }
         }
         chdir $dir;
@@ -114,7 +120,7 @@ __DATA__
 
 @@ index.html.ep
 % layout 'default';
-% title 'Welcome';
+% title 'Welcome uroku';
 <h1>uroku</h1>
 <p>yuni roku</p>
 
@@ -131,6 +137,14 @@ __DATA__
   </li>
   % }
 </ul>
+
+@@ error.html.ep
+% layout 'default';
+% title 'something wrong';
+
+<h1>error occured</h1>
+<div class="alert alert-error">failed to deploy testing</div>
+<a href="/" class="btn">go back</a>
 
 @@ layouts/default.html.ep
 <!DOCTYPE html>
