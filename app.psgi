@@ -3,7 +3,7 @@ use Mojolicious::Lite;
 use File::Slurp;
 use URI;
 use Digest::SHA1 qw/sha1_hex/;
-use File::Path qw/make_path/;
+use File::Path qw/make_path rmtree/;
 use Cwd;
 
 # Documentation browser under "/perldoc"
@@ -26,6 +26,16 @@ sub emit {
             $hook->(@args);
         }
     }
+}
+
+sub del_service {
+    my $digest = shift;
+    my $dir = getcwd;
+    chdir "$SERVICE_HOME";
+    unlink "conf/$digest.ini", "root/$digest";
+    rmtree("logs/$digest");
+    rmtree("gits/$digest");
+    chdir $dir;
 }
 
 on(
@@ -64,7 +74,7 @@ sub check_uri {
 get '/' => sub {
     my $self = shift;
     my @files = grep { -d "$SERVICE_HOME/gits/$_" } read_dir("$SERVICE_HOME/gits");
-    @files = map { sprintf($DOMAIN, $_) } @files;
+    @files = map { { digest => $_, url => sprintf($DOMAIN, $_) } } @files;
     $self->stash(list => \@files);
     $self->render('index');
 };
@@ -91,6 +101,13 @@ post '/' => sub {
     $self->redirect_to('/');
 };
 
+del '/services/:digest' => sub {
+    my $self = shift;
+    my $digest = $self->param('digest');
+    del_service($digest);
+    $self->render_json({});
+};
+
 app->start;
 __DATA__
 
@@ -108,7 +125,8 @@ __DATA__
 <ul>
   % for my $item (@$list) {
   <li>
-    <a href="<%= $item %>"><%= $item %></a>
+    <a href="<%= $item->{url} %>"><%= $item->{url} %></a>
+    <a href="/services/<%= $item->{digest} %>" class="button delete">delete</a>
   </li>
   % }
 </ul>
@@ -116,6 +134,12 @@ __DATA__
 @@ layouts/default.html.ep
 <!DOCTYPE html>
 <html>
-  <head><title><%= title %></title></head>
-  <body><%= content %></body>
+  <head>
+    <title><%= title %></title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="app.js"></script>
+  </head>
+  <body>
+    <%= content %>
+  </body>
 </html>
