@@ -2,7 +2,7 @@
 (function() {
 
   $(function() {
-    return $('.button.delete').click(function() {
+    return $('.btn.delete').click(function() {
       $.ajax({
         url: $(this).attr('href'),
         type: 'DELETE',

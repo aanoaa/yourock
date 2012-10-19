@@ -1,5 +1,5 @@
 $ ->
-  $('.button.delete').click ->
+  $('.btn.delete').click ->
     $.ajax
       url: $(@).attr('href')
       type: 'DELETE'

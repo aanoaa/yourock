@@ -9,7 +9,7 @@ use Cwd;
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-# my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
+#my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
 my $SERVICE_HOME = '/home/p5/site/micro.jjang.info';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
@@ -117,16 +117,16 @@ __DATA__
 <h1>uroku</h1>
 <p>yuni roku</p>
 
-<form method="post" enctype="application/x-www-form-urlencoded">
-  <input type="text" name="repo"/>
-  <input type="submit" value="create"/>
+<form method="post" enctype="application/x-www-form-urlencoded" class="form-inline">
+  <input type="text" name="repo" placeholder="git://github.com/<user>/<repo>.git"/>
+  <input type="submit" class="btn btn-primary" value="create"/>
 </form>
 
 <ul>
   % for my $item (@$list) {
   <li>
     <a href="<%= $item->{url} %>"><%= $item->{url} %></a>
-    <a href="/services/<%= $item->{digest} %>" class="button delete">delete</a>
+    <a href="/services/<%= $item->{digest} %>" class="btn btn-small delete">delete</a>
   </li>
   % }
 </ul>
@@ -136,10 +136,16 @@ __DATA__
 <html>
   <head>
     <title><%= title %></title>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.1/css/bootstrap-combined.min.css" rel="stylesheet">
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.1/js/bootstrap.min.js"></script>
     <script src="app.js"></script>
   </head>
   <body>
-    <%= content %>
+    <div class="container">
+      <div class="row">
+        <%= content %>
+      </div>
+    </div>
   </body>
 </html>
