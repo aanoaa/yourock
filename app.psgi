@@ -9,7 +9,8 @@ use Cwd;
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
+# my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
+my $SERVICE_HOME = '/home/p5/site/micro.jjang.info';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
 
