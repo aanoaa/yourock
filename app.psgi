@@ -10,7 +10,7 @@ use Cwd;
 plugin 'PODRenderer';
 
 #my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
-my $SERVICE_HOME = '/home/p5/site/micro.jjang.info';
+my $SERVICE_HOME = '/home/apps/apps';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
 
@@ -75,7 +75,11 @@ get '/' => sub {
     my $self = shift;
     my @files = grep { -d "$SERVICE_HOME/gits/$_" } read_dir("$SERVICE_HOME/gits");
     @files = grep { $_ !~ m/27d5f7c/ } @files;
-    @files = map { { digest => $_, url => sprintf($DOMAIN, $_) } } @files;
+    @files = map { {
+        digest => $_,
+        url => sprintf($DOMAIN, $_), 
+        giturl => giturl($_),
+    } } @files;
     $self->stash(list => \@files);
     $self->render('index');
 };
@@ -116,6 +120,13 @@ del '/services/:digest' => sub {
 };
 
 app->start;
+
+sub giturl {
+    my $c = read_file("$SERVICE_HOME/gits/$_[0]/.git/config");
+    $c =~ m/url = (.+?)\n/s;
+    return $1;
+}
+
 __DATA__
 
 @@ index.html.ep
@@ -132,7 +143,7 @@ __DATA__
 <ul>
   % for my $item (@$list) {
   <li>
-    <a href="<%= $item->{url} %>"><%= $item->{url} %></a>
+    <a href="<%= $item->{url} %>"><%= $item->{url} %> - <%= $item->{giturl} %></a>
     <a href="/services/<%= $item->{digest} %>" class="btn btn-small delete">delete</a>
   </li>
   % }
