@@ -5,14 +5,20 @@ use URI;
 use Digest::SHA1 qw/sha1_hex/;
 use File::Path qw/make_path rmtree/;
 use Cwd;
+use Net::RabbitMQ;
 
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-#my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
+# my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
 my $SERVICE_HOME = '/home/apps/apps';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
+
+## RabbitMQ configuration
+my $CHANNEL  = 1;
+my $QUEUE    = 'yourock.installdeps.q';
+my $EXCHANGE = 'yourock.installdeps.x';
 
 sub on {
     my ($name, $callback) = @_;
@@ -38,10 +44,44 @@ sub del_service {
     chdir $dir;
 }
 
+=head2 installdeps
+
+install depend module dependencies
+
+=over
+
+=item * check Makefile.PL
+
+=item * C<cpanm -l .>
+
+=back
+
+=cut
+
+sub enqueue {
+    my $message = shift;
+    my $mq = Net::RabbitMQ->new();
+    $mq->connect("localhost", { user => "guest", password => "guest" });
+    $mq->channel_open($CHANNEL);
+    $mq->exchange_declare($CHANNEL, $EXCHANGE, { auto_delete => 0 });
+    $mq->queue_declare($CHANNEL, $QUEUE, { auto_delete => 0 });
+    $mq->publish($CHANNEL, $QUEUE, $message);
+    $mq->disconnect();
+}
+
+sub installdeps {
+    my $dir = getcwd;
+    enqueue($dir);
+}
+
 on(
     'pull',
     sub {
         my ($uri, $digest) = @_;
+        my $dir = getcwd;
+        chdir "$SERVICE_HOME/gits/$digest";
+        installdeps() if -f 'Makefile.PL';
+        chdir $dir;
     }
 );
 
@@ -52,6 +92,7 @@ on(
         make_path("../logs/$digest");
         symlink '../master.ini', "../conf/$digest.ini";
         symlink "../gits/$digest/public", "../root/$digest";
+        emit('pull', $uri, $digest);
     }
 );
 
