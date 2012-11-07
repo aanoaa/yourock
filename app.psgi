@@ -5,14 +5,27 @@ use URI;
 use Digest::SHA1 qw/sha1_hex/;
 use File::Path qw/make_path rmtree/;
 use Cwd;
+use Directory::Queue::Simple;
 
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-#my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
-my $SERVICE_HOME = '/home/apps/apps';
+my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
+# my $SERVICE_HOME = '/home/apps/apps';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
+
+sub enqueue {
+    my $message = shift;
+    my $dirq = Directory::Queue::Simple->new(path => "/tmp/yourock/installdeps");
+    my $name = $dirq->add($message);
+}
+
+sub installdeps {
+    # producer
+    my $dir = getcwd;
+    enqueue($dir);
+}
 
 sub on {
     my ($name, $callback) = @_;
@@ -42,6 +55,10 @@ on(
     'pull',
     sub {
         my ($uri, $digest) = @_;
+        my $dir = getcwd;
+        chdir "$SERVICE_HOME/gits/$digest";
+        installdeps() if -f 'Makefile.PL';
+        chdir $dir;
     }
 );
 
@@ -52,6 +69,7 @@ on(
         make_path("../logs/$digest");
         symlink '../master.ini', "../conf/$digest.ini";
         symlink "../gits/$digest/public", "../root/$digest";
+        emit('pull', $uri, $digest);
     }
 );
 
