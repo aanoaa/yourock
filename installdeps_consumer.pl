@@ -7,7 +7,9 @@ while (1) {
     for (my $name = $dirq->first(); $name; $name = $dirq->next()) {
         next unless $dirq->lock($name);
         my $dir = $dirq->get($name);
+        print "get [$dir]\n";
         next unless -f "$dir/Makefile.PL";
+        print "found Makefile.PL install_modules\n";
         install_modules($dir);
         $dirq->remove($name);
     }
@@ -22,11 +24,14 @@ sub install_modules {
 
     # app.status
     open my $status, '>', 'app.status';
+    print "made [app.status]\n";
     print $status 1;
     close $status;
 
+    print "fetching [cpanm -L lib -n --installdeps .]\n";
     system "cpanm -L lib -n --installdeps .";
 
     # app.status
     unlink 'app.status';
+    print "unlink [app.status]\n";
 }

@@ -10,21 +10,24 @@ use Directory::Queue::Simple;
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-my $SERVICE_HOME = '/home/hshong/Desktop'; # will be changed
-# my $SERVICE_HOME = '/home/apps/apps';
+# my $SERVICE_HOME = '/home/hshong/Desktop/t'; # will be changed
+my $SERVICE_HOME = '/home/apps/apps';
 my $DOMAIN = 'http://%s.micro.jjang.info';
 my %HOOK;
 
 sub enqueue {
-    my $message = shift;
+    my ($self, $message) = @_;
     my $dirq = Directory::Queue::Simple->new(path => "/tmp/yourock/installdeps");
     my $name = $dirq->add($message);
+    $self->app->log->debug("added [$name] to the queue");
 }
 
 sub installdeps {
     # producer
+    my $self = shift;
     my $dir = getcwd;
-    enqueue($dir);
+    $self->app->log->debug("enqueue: [$dir]");
+    enqueue($self, $dir);
 }
 
 sub on {
@@ -54,10 +57,11 @@ sub del_service {
 on(
     'pull',
     sub {
-        my ($uri, $digest) = @_;
+        my ($self, $uri, $digest) = @_;
         my $dir = getcwd;
         chdir "$SERVICE_HOME/gits/$digest";
-        installdeps() if -f 'Makefile.PL';
+        $self->app->log->debug("installdeps");
+        installdeps($self) if -f 'Makefile.PL';
         chdir $dir;
     }
 );
@@ -65,11 +69,13 @@ on(
 on(
     'clone',
     sub {
-        my ($uri, $digest) = @_;
+        my ($self, $uri, $digest) = @_;
+        $self->app->log->debug("make_path");
         make_path("../logs/$digest");
         symlink '../master.ini', "../conf/$digest.ini";
         symlink "../gits/$digest/public", "../root/$digest";
-        emit('pull', $uri, $digest);
+        $self->app->log->debug("emit pull: [$digest]");
+        emit('pull', $self, $uri, $digest);
     }
 );
 
@@ -111,12 +117,14 @@ post '/' => sub {
         chdir "$SERVICE_HOME/gits";
         if (-d $digest) {
             if (!system("git pull")) {
-                emit('pull', $repo, $digest);
+                $self->app->log->debug("emit pull: [$repo]");
+                emit('pull', $self, $repo, $digest);
             }
         } else {
             if (!system("git clone $repo $digest")) {
                 if (-d "$digest/public" && -f "$digest/app.psgi") {
-                    emit('clone', $repo, $digest);
+                    $self->app->log->debug("emit clone: [$repo]");
+                    emit('clone', $self, $repo, $digest);
                 } else {
                     rmtree("$digest");
                     $self->render('error');
